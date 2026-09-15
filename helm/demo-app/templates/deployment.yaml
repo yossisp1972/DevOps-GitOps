@@ -19,6 +19,8 @@ spec:
         app: {{ .Release.Name }}
 
     spec:
+      imagePullSecrets:
+        - name: ecr-secret
       containers:
         - name: demo-app
 
