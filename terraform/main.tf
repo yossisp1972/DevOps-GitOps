@@ -74,13 +74,6 @@ resource "aws_security_group" "k3s" {
   description = "Security group for K3s lab"
   vpc_id      = aws_vpc.main.id
 
-  ingress {
-    description = "SSH from administrator IP"
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = [var.allowed_ssh_cidr]
-  }
 
   ingress {
     description = "HTTP"
@@ -109,11 +102,6 @@ resource "aws_security_group" "k3s" {
   tags = {
     Name = "k3s-lab-sg"
   }
-}
-
-resource "aws_key_pair" "k3s" {
-  key_name   = "k3s-lab-key"
-  public_key = var.public_key
 }
 
 resource "aws_iam_role" "ec2" {
