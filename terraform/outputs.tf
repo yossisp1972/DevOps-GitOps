@@ -1,16 +1,16 @@
 output "instance_id" {
-  description = "EC2 instance ID"
+  description = "K3s EC2 instance ID"
   value       = aws_instance.k3s.id
 }
 
 output "public_ip" {
-  description = "K3s server public IP"
+  description = "Public IP of K3s EC2 instance"
   value       = aws_instance.k3s.public_ip
 }
 
-output "ssh_command" {
-  description = "Example SSH command"
-  value       = "ssh ubuntu@${aws_instance.k3s.public_ip}"
+output "ssm_command" {
+  description = "Command to connect using AWS Systems Manager"
+  value       = "aws ssm start-session --target ${aws_instance.k3s.id}"
 }
 
 output "vpc_id" {
