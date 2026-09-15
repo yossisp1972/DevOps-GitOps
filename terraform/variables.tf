@@ -16,9 +16,4 @@ variable "instance_type" {
   default     = "t3.medium"
 }
 
-  validation {
-    condition     = var.allowed_ssh_cidr != "0.0.0.0/0"
-    error_message = "Do not expose SSH to the entire internet. Supply your public IP as x.x.x.x/32."
-  }
-}
 
