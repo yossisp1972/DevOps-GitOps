@@ -36,44 +36,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Show GitHub OIDC claims
-        shell: bash
-        working-directory: .
-        run: |
-          set -euo pipefail
-
-          TOKEN_JSON=$(curl -sS \
-            -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
-            "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=sts.amazonaws.com")
-
-          TOKEN=$(echo "$TOKEN_JSON" | jq -r '.value')
-
-          if [ "$TOKEN" = "null" ] || [ -z "$TOKEN" ]; then
-            echo "Failed to obtain GitHub OIDC token."
-            echo "$TOKEN_JSON"
-            exit 1
-          fi
-
-          PAYLOAD=$(echo "$TOKEN" | cut -d '.' -f2)
-          PAYLOAD=$(echo "$PAYLOAD" | tr '_-' '/+')
-
-          case $((${#PAYLOAD} % 4)) in
-            2) PAYLOAD="${PAYLOAD}==" ;;
-            3) PAYLOAD="${PAYLOAD}=" ;;
-          esac
-
-          echo "GitHub OIDC claims:"
-          echo "$PAYLOAD" | base64 -d | jq '{
-            aud,
-            sub,
-            repository,
-            repository_id,
-            repository_owner,
-            repository_owner_id,
-            ref,
-            environment
-          }'
-
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v5
         with:
@@ -82,8 +44,7 @@ jobs:
 
       - name: Verify AWS identity
         working-directory: .
-        run: |
-          aws sts get-caller-identity
+        run: aws sts get-caller-identity
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
@@ -100,11 +61,7 @@ jobs:
         run: terraform validate
 
       - name: Terraform Plan
-        run: |
-          terraform plan \
-            -var="allowed_ssh_cidr=${{ secrets.ALLOWED_SSH_CIDR }}" \
-            -var="public_key=${{ secrets.SSH_PUBLIC_KEY }}" \
-            -out=tfplan
+        run: terraform plan -out=tfplan
 
   terraform-apply:
     name: Terraform Apply
@@ -134,8 +91,7 @@ jobs:
 
       - name: Verify AWS identity
         working-directory: .
-        run: |
-          aws sts get-caller-identity
+        run: aws sts get-caller-identity
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
@@ -146,8 +102,4 @@ jobs:
         run: terraform init
 
       - name: Terraform Apply
-        run: |
-          terraform apply \
-            -auto-approve \
-            -var="allowed_ssh_cidr=${{ secrets.ALLOWED_SSH_CIDR }}" \
-            -var="public_key=${{ secrets.SSH_PUBLIC_KEY }}"
+        run: terraform apply -auto-approve
