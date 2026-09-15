@@ -20,3 +20,8 @@ output "vpc_id" {
 output "subnet_id" {
   value = aws_subnet.public.id
 }
+
+output "ecr_repository_url" {
+  description = "ECR repository URL for demo application"
+  value       = aws_ecr_repository.demo_app.repository_url
+}
