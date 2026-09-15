@@ -1,0 +1,59 @@
+name: Terraform Destroy
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_destroy:
+        description: 'Type DESTROY to confirm'
+        required: true
+        default: ''
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: eu-west-1
+  TF_WORKING_DIR: terraform
+
+jobs:
+  destroy:
+    name: Terraform Destroy
+    runs-on: ubuntu-latest
+
+    if: github.event.inputs.confirm_destroy == 'DESTROY'
+
+    environment:
+      name: production
+
+    defaults:
+      run:
+        working-directory: ${{ env.TF_WORKING_DIR }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v5
+        with:
+          role-to-assume: ${{ secrets.AWS_TERRAFORM_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Verify AWS identity
+        working-directory: .
+        run: aws sts get-caller-identity
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.13.0
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Destroy Plan
+        run: terraform plan -destroy -out=destroy.tfplan
+
+      - name: Terraform Destroy
+        run: terraform apply -auto-approve destroy.tfplan
