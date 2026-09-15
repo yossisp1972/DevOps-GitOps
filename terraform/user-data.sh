@@ -13,15 +13,32 @@ if command -v snap >/dev/null 2>&1; then
     systemctl start snap.amazon-ssm-agent.amazon-ssm-agent.service || true
 fi
 
+# -----------------------------
 # Install K3s
+# -----------------------------
 curl -sfL https://get.k3s.io | sh -s - \
     --write-kubeconfig-mode 644
 
 systemctl enable k3s
 systemctl start k3s
 
-mkdir -p /home/ubuntu/.kube
-cp /etc/rancher/k3s/k3s.yaml /home/ubuntu/.kube/config
-chown -R ubuntu:ubuntu /home/ubuntu/.kube
+# Wait for Kubernetes
+until /usr/local/bin/k3s kubectl get nodes >/dev/null 2>&1; do
+    echo "Waiting for K3s..."
+    sleep 5
+done
 
-echo 'export KUBECONFIG=$HOME/.kube/config' >> /home/ubuntu/.bashrc
+# -----------------------------
+# Install Argo CD
+# -----------------------------
+/usr/local/bin/k3s kubectl create namespace argocd
+
+/usr/local/bin/k3s kubectl apply \
+    -n argocd \
+    -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+
+# Wait for Argo CD
+/usr/local/bin/k3s kubectl rollout status \
+    deployment/argocd-server \
+    -n argocd \
+    --timeout=300s
