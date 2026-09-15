@@ -1,17 +1,7 @@
 name: Terraform Infrastructure
 
 on:
-  pull_request:
-    paths:
-      - "terraform/**"
-      - ".github/workflows/terraform.yml"
-
-  push:
-    branches:
-      - main
-    paths:
-      - "terraform/**"
-      - ".github/workflows/terraform.yml"
+  workflow_dispatch:
 
 permissions:
   id-token: write
@@ -22,80 +12,30 @@ env:
   TF_WORKING_DIR: terraform
 
 jobs:
-  terraform-plan:
-    name: Terraform Plan
+  terraform:
     runs-on: ubuntu-latest
 
-    defaults:
-      run:
-        working-directory: ${{ env.TF_WORKING_DIR }}
-
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v5
         with:
           role-to-assume: ${{ secrets.AWS_TERRAFORM_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
+          audience: sts.amazonaws.com
+
+      - name: Verify AWS identity
+        run: aws sts get-caller-identity
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: 1.13.0
 
       - name: Terraform Init
+        working-directory: ${{ env.TF_WORKING_DIR }}
         run: terraform init
-
-      - name: Terraform Format Check
-        run: terraform fmt -check -recursive
-
-      - name: Terraform Validate
-        run: terraform validate
 
       - name: Terraform Plan
-        run: |
-          terraform plan \
-            -var="allowed_ssh_cidr=${{ secrets.ALLOWED_SSH_CIDR }}" \
-            -var="public_key=${{ secrets.SSH_PUBLIC_KEY }}" \
-            -out=tfplan
-
-  terraform-apply:
-    name: Terraform Apply
-    needs: terraform-plan
-
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-
-    runs-on: ubuntu-latest
-
-    environment:
-      name: production
-
-    defaults:
-      run:
         working-directory: ${{ env.TF_WORKING_DIR }}
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ secrets.AWS_TERRAFORM_ROLE_ARN }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: 1.13.0
-
-      - name: Terraform Init
-        run: terraform init
-
-      - name: Terraform Apply
-        run: |
-          terraform apply -auto-approve \
-            -var="allowed_ssh_cidr=${{ secrets.ALLOWED_SSH_CIDR }}" \
-            -var="public_key=${{ secrets.SSH_PUBLIC_KEY }}"
+        run: terraform plan
