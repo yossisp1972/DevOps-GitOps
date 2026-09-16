@@ -127,6 +127,7 @@ resource "aws_iam_role" "ec2" {
 resource "aws_ecr_repository" "demo_app" {
   name                 = "demo-app"
   image_tag_mutability = "IMMUTABLE"
+  force_delete         = true
 
   image_scanning_configuration {
     scan_on_push = true
